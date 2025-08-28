@@ -55,9 +55,6 @@ def load_clickhouse_data():
 
     result = client.query(query)
     df_fetched = pd.DataFrame(result.result_rows, columns=result.column_names)
-    df_fetched = df_fetched.drop('isFlaggedFraud', axis=1)
-    # This is a placeholder. Replace with actual db fetch.
-    # e.g. query_df = fetch_data_from_clickhouse(...)
     return df_fetched.copy()
 
 def load_unpredicted():
