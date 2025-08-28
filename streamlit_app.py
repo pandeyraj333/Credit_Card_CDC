@@ -25,14 +25,13 @@ def preprocess(df):
     # Feature engineering
     df['balance_diff'] = df.oldbalanceOrg - df.newbalanceOrig
 
-    # Select features used in the model
-    features = ['amount', 'oldbalanceOrg', 'newbalanceOrig', 'balance_diff'] + \
-               [col for col in df.columns if col.startswith('type_')]
+    feature_columns = joblib.load("feature_columns.joblib")
 
-    # Handle any missing columns due to one-hot encoding mismatch
-    for col in features:
+    # Add any missing dummy columns and sort as in training
+    for col in feature_columns:
         if col not in df.columns:
             df[col] = 0
+    df = df[feature_columns]
 
     return df[features]
 
