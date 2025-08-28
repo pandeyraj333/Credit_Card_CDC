@@ -61,7 +61,6 @@ def load_unpredicted():
     query = '''select * from credit_card_predictions where predicted_value is NULL'''
     result = client.query(query)
     df = pd.DataFrame(result.result_rows, columns=result.column_names)
-    df = df.drop('isFlaggedFraud', axis=1)
     return df
 def make_and_push_predictions(df):
     if df.empty:
