@@ -79,7 +79,7 @@ def make_and_push_predictions(df):
     # columns_to_write = ['row_id', 'predicted_value']  # or your PK/UID column + prediction
     # data_to_write = df[columns_to_write].to_dict('records')
     # client.insert('credit_card_predictions', data_to_write, column_names=columns_to_write)
-
+    st.dataframe(df)
     # OR to update the existing table:
     for idx, row in df.iterrows():
         query = f"ALTER TABLE credit_card_predictions UPDATE predicted_value = {int(row['predicted_value'])} WHERE nameOrig = '{row['nameOrig']} and nameDest = '{row['nameDest']}'"
