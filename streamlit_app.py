@@ -45,19 +45,13 @@ client = clickhouse_connect.get_client(
     database='MySQL-CDC'  # Adjust if your DB name differs
 )
 
-query = f"""
-select * from credit_card_transaction_data order by _peerdb_synced_at desc limit 1;
-"""
-
-result = client.query(query)
-df_city_live = pd.DataFrame(result.result_rows, columns=result.column_names)
 
 # Assuming query_df is fetched externally, simulate this here for UI sake.
 # Replace this stub with your actual query_df loading code.
 # For example, you could place your query_df fetch function here.
 def load_clickhouse_data():
     query = f"""
-    select * from credit_card_transaction_data order by _peerdb_synced_at desc limit 100;
+    select * from credit_card_transaction_data order by _peerdb_synced_at desc limit 100
     """
 
     result = client.query(query)
