@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import clickhouse_connect
 
 # Load saved model and scaler
 @st.cache_resource
