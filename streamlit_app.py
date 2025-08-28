@@ -60,66 +60,98 @@ def load_clickhouse_data():
     # e.g. query_df = fetch_data_from_clickhouse(...)
     return df_fetched.copy()
 
+def load_unpredicted():
+    query = '''select * from credit_card_predictions where predicted_value is NULL'''
+    result = client.query(query)
+    df = pd.DataFrame(result.result_rows, columns=result.column_names)
+    df = df.drop('isFlaggedFraud', axis=1)
+    return df
+def make_and_push_predictions(df):
+    if df.empty:
+        st.success("All data already has predictions!")
+        return
+
+    X = preprocess(df)
+    X_scaled = scaler.transform(X)
+    preds = model.predict(X_scaled)
+
+    # 3. Insert predictions back using a batch insert
+    df['predicted_value'] = preds
+
+    # You can insert this to another table, or update the main table
+    # Here, for a new predictions table:
+    # columns_to_write = ['row_id', 'predicted_value']  # or your PK/UID column + prediction
+    # data_to_write = df[columns_to_write].to_dict('records')
+    # client.insert('credit_card_predictions', data_to_write, column_names=columns_to_write)
+
+    # OR to update the existing table:
+    for idx, row in df.iterrows():
+        query = f"ALTER TABLE credit_card_predictions UPDATE predicted_value = {int(row['predicted_value'])} WHERE nameOrig = '{row['nameOrig']} and nameDest = '{row['nameDest']}'"
+        client.command(query)
+
+    st.success(f"Pushed predictions for {len(df)} rows.")
+
+
 st.title("Credit Card Transaction Fraud Detection")
 
 # Fetch and preprocess data
-df = load_clickhouse_data()
-if df.empty:
-    st.warning("No transaction data available.")
-    st.stop()
+df_main = load_clickhouse_data()
+st.title("Credit Card Transactions Overview")
 
-X = preprocess(df)
+total_txns = len(df_main)
+fraud_rate = 0.0
+if 'isFlaggedFraud' in df_main.columns:
+    fraud_rate = df_main['isFlaggedFraud'].mean() * 100
 
-# Scale features and predict fraud probabilities and classes
-X_scaled = scaler.transform(X)
-fraud_proba = model.predict_proba(X_scaled)[:, 1]
-fraud_pred = model.predict(X_scaled)
-
-df['Fraud Probability'] = fraud_proba
-df['Predicted Fraud'] = fraud_pred
-
-# Display summary statistics
-total_transactions = len(df)
-total_fraud = fraud_pred.sum()
-fraud_rate = total_fraud / total_transactions * 100
-
-st.metric("Total Transactions", total_transactions)
-st.metric("Predicted Fraudulent Transactions", total_fraud)
+st.metric("Total Transactions", total_txns)
 st.metric("Fraud Rate (%)", f"{fraud_rate:.2f}")
 
-# Interactive filter by prediction
-filter_option = st.selectbox("Filter transactions by prediction:",  ["All", "Not Fraud", "Fraud"])
 
-if filter_option == "Not Fraud":
-    df_filtered = df[df['Predicted Fraud'] == 0]
-elif filter_option == "Fraud":
-    df_filtered = df[df['Predicted Fraud'] == 1]
-else:
-    df_filtered = df
+st.metric("Total Transactions", total_txns)
+st.metric("Fraud Rate (%)", f"{fraud_rate:.2f}")
 
-# Show table with highlighting fraud rows
-def highlight_fraud(row):
-    return ['background-color: #f87171' if v == 1 else '' for v in row['Predicted Fraud':'Predicted Fraud']]
+# Visual - Pie chart of fraud vs non-fraud
+fraud_counts = df_main['isFlaggedFraud'].value_counts().sort_index()
+labels = ['Not Fraud', 'Fraud']
+sizes = [fraud_counts.get(0, 0), fraud_counts.get(1, 0)]
 
-# We highlight rows entirely for simplicity here on predicted fraud
-def highlight_row(row):
-    if row['Predicted Fraud'] == 1:
-        return ['background-color: #fddede'] * len(row)
-    else:
-        return [''] * len(row)
-
-st.write(f"Showing {len(df_filtered)} transactions")
-
-st.dataframe(df_filtered.style.apply(highlight_row, axis=1))
-
-# Plot fraud probability distribution
 fig, ax = plt.subplots()
-sns.histplot(df['Fraud Probability'], bins=50, kde=True, color='orange', ax=ax)
-ax.set_title("Distribution of Fraud Probability")
-ax.set_xlabel("Fraud Probability")
-ax.set_ylabel("Count")
+ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=['#4CAF50', '#F44336'])
+ax.axis('equal')  # Equal aspect ratio ensures pie is circular
+ax.set_title("Fraud vs Non-Fraud Transactions")
+
 st.pyplot(fig)
 
+
+# # Interactive filter by prediction
+# filter_option = st.selectbox("Filter transactions by prediction:",  ["All", "Not Fraud", "Fraud"])
+
+# if filter_option == "Not Fraud":
+#     df_filtered = df[df['Predicted Fraud'] == 0]
+# elif filter_option == "Fraud":
+#     df_filtered = df[df['Predicted Fraud'] == 1]
+# else:
+#     df_filtered = df
+
+# Show table with highlighting fraud rows
+# def highlight_fraud(row):
+#     return ['background-color: #f87171' if v == 1 else '' for v in row['Predicted Fraud':'Predicted Fraud']]
+
+# # We highlight rows entirely for simplicity here on predicted fraud
+# def highlight_row(row):
+#     if row['Predicted Fraud'] == 1:
+#         return ['background-color: #fddede'] * len(row)
+#     else:
+#         return [''] * len(row)
+
+# st.write(f"Showing {len(df_filtered)} transactions")
+
+
+
 # Button to refresh (simulate re-fetch and rerun)
-if st.button("Refresh Data"):
-    st.experimental_rerun()
+if st.button("Predict & Push for Missing Predictions"):
+    df_unpredicted = load_unpredicted()
+    st.dataframe(df_filtered)
+    st.write(f"{len(df_unpredicted)} transactions need prediction.")
+    if len(df_unpredicted) > 0:
+        make_and_push_predictions(df_unpredicted) 
