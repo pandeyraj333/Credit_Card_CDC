@@ -147,7 +147,7 @@ st.pyplot(fig)
 # Button to refresh (simulate re-fetch and rerun)
 if st.button("Fetch Unpredicted"):
     df_unpredicted = load_unpredicted()
-    st.dataframe(df_filtered)
+    st.dataframe(df_unpredicted)
     st.write(f"{len(df_unpredicted)} transactions need prediction.")
 if st.button("Push Missing Predictions"):
     if len(df_unpredicted) > 0:
