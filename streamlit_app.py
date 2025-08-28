@@ -33,7 +33,7 @@ def preprocess(df):
             df[col] = 0
     df = df[feature_columns]
 
-    return df[features]
+    return df[feature_columns]
 
 
 client = clickhouse_connect.get_client(
