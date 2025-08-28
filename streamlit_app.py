@@ -50,7 +50,7 @@ client = clickhouse_connect.get_client(
 # For example, you could place your query_df fetch function here.
 def load_clickhouse_data():
     query = f"""
-    select * from credit_card_transaction_data order by _peerdb_synced_at desc limit 100
+    select * from credit_card_transaction_data order by _peerdb_synced_at desc
     """
 
     result = client.query(query)
@@ -146,9 +146,10 @@ st.pyplot(fig)
 
 
 # Button to refresh (simulate re-fetch and rerun)
-if st.button("Predict & Push for Missing Predictions"):
+if st.button("Fetch Unpredicted"):
     df_unpredicted = load_unpredicted()
     st.dataframe(df_filtered)
     st.write(f"{len(df_unpredicted)} transactions need prediction.")
+if st.button("Push Missing Predictions"):
     if len(df_unpredicted) > 0:
         make_and_push_predictions(df_unpredicted) 
