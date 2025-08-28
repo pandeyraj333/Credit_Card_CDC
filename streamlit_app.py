@@ -13,8 +13,6 @@ def load_model_scaler():
     scaler = joblib.load("scaler.joblib")
     return model, scaler
 
-model, scaler = load_model_scaler()
-
 
 # Function to preprocess the ClickHouse data to fit the model
 def preprocess(df):
@@ -62,13 +60,16 @@ def load_unpredicted():
     result = client.query(query)
     df = pd.DataFrame(result.result_rows, columns=result.column_names)
     return df
+
+
+
 def make_and_push_predictions(df):
     if df.empty:
         st.success("All data already has predictions!")
         return
-
     X = preprocess(df)
     X_scaled = scaler.transform(X)
+    model, scaler = load_model_scaler()
     preds = model.predict(X_scaled)
 
     # 3. Insert predictions back using a batch insert
@@ -150,5 +151,6 @@ if st.button("Fetch Unpredicted"):
     st.dataframe(df_unpredicted)
     st.write(f"{len(df_unpredicted)} transactions need prediction.")
 if st.button("Push Missing Predictions"):
+    df_unpredicted = load_unpredicted()
     if len(df_unpredicted) > 0:
         make_and_push_predictions(df_unpredicted) 
