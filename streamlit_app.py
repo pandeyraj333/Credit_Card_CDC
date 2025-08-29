@@ -84,7 +84,7 @@ def make_and_push_predictions(df):
     st.dataframe(df)
     # OR to update the existing table:
     for idx, row in df.iterrows():
-        query = f"ALTER TABLE credit_card_predictions UPDATE predicted_value = {int(row['predicted_value'])} WHERE nameOrig = '{row['nameOrig']} and nameDest = '{row['nameDest']}'"
+        query = f"ALTER TABLE credit_card_predictions UPDATE predicted_value = {int(row['predicted_value'])} WHERE nameOrig = '{row['nameOrig']}' and nameDest = '{row['nameDest']}'"
         client.command(query)
 
     st.success(f"Pushed predictions for {len(df)} rows.")
