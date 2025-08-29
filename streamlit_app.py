@@ -68,8 +68,9 @@ def make_and_push_predictions(df):
         st.success("All data already has predictions!")
         return
     X = preprocess(df)
-    X_scaled = scaler.transform(X)
     model, scaler = load_model_scaler()
+    
+    X_scaled = scaler.transform(X)
     preds = model.predict(X_scaled)
 
     # 3. Insert predictions back using a batch insert
